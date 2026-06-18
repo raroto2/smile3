@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이달의 칭찬 상담원</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    },
+                    colors: {
+                        pastel: {
+                            blue: '#E3F2FD',
+                            indigo: '#E8EAF6',
+                            mint: '#E0F2F1',
+                            green: '#E8F5E9',
+                            pink: '#FCE4EC',
+                            peach: '#FFF3E0',
+                            purple: '#F3E5F5',
+                            text: '#2C3E50',
+                            accent: '#5C6BC0',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #F5F7FA 0%, #E4E8F0 100%);
+            min-height: 100vh;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.15);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased flex flex-col justify-between pb-20 md:pb-16">
+
+    <!-- 상단 헤더 & 월 선택 시뮬레이터 -->
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-30 transition-all border-b border-slate-100">
+        <!-- 실시간 클라우드 연결 상태 표시 바 -->
+        <div id="connection-status-bar" class="bg-amber-500 text-white text-[10px] py-1 text-center font-bold tracking-wider transition-all">
+            <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> 서버 연결 확인 중... (실패 시 무중단 로컬 모드 전환)
+        </div>
+
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="navigate('home')">
+                <span class="text-2xl">🏆</span>
+                <h1 class="text-lg font-bold text-slate-800 tracking-tight">이달의 칭찬 상담원</h1>
+            </div>
+            
+            <!-- 월 변경 셀렉터 -->
+            <div class="flex items-center gap-1 bg-pastel-blue/60 border border-blue-100 px-2 py-1 rounded-full text-xs font-semibold text-indigo-700">
+                <i class="fa-regular fa-calendar-days"></i>
+                <select id="month-selector" onchange="onMonthChanged(this.value)" class="bg-transparent border-none focus:outline-none cursor-pointer pr-1">
+                    <!-- 2026-06 ~ 2027-12 범위 자동 생성 -->
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="flex-grow max-w-md w-full mx-auto px-4 py-6">
+
+        <!-- ==================== 1. HOME (투표 등록) 화면 ==================== -->
+        <section id="view-home" class="view-panel space-y-6">
+            <div class="text-center space-y-1.5 py-4">
+                <h2 class="text-2.5xl font-black text-slate-800 tracking-tight flex items-center justify-center gap-2">
+                    <span id="current-month-title" class="text-indigo-600">2026년 06월</span> 
+                </h2>
+                <p class="text-slate-500 text-sm font-medium">우리 센터의 빛나는 친절 상담원을 선택하여 힘을 실어주세요!</p>
+            </div>
+
+            <!-- 센터 선택 버튼 그리드 -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">소속 센터 선택</h3>
+                <div id="center-buttons-container" class="grid grid-cols-1 gap-3">
+                    <!-- 동적 생성 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 2. 센터별 상세 투표 화면 ==================== -->
+        <section id="view-vote" class="view-panel hidden space-y-6">
+            <div class="flex items-center gap-3">
+                <button onclick="navigate('home')" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <span id="vote-center-badge" class="px-2.5 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full"></span>
+                    <h2 class="text-xl font-bold text-slate-800">상담원 선택하기</h2>
+                </div>
+            </div>
+
+            <div class="bg-white/80 border border-slate-100 p-4 rounded-2xl text-sm text-slate-600 leading-relaxed shadow-sm">
+                <i class="fa-solid fa-circle-info text-indigo-500 mr-1.5"></i> 
+                칭찬하고 싶은 동료의 이름 옆 <strong>체크박스</strong>를 누른 후 하단의 <strong class="text-indigo-600">투표 제출</strong> 버튼을 클릭하세요. (중복 선택 가능)
+            </div>
+
+            <!-- 상담원 목록 -->
+            <div id="vote-agents-list" class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                <!-- 동적 생성 -->
+            </div>
+
+            <!-- 투표 완료 버튼 -->
+            <button onclick="submitVotes()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-200 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i>
+                투표 완료하기
+            </button>
+        </section>
+
+        <!-- ==================== 3. 칭찬인 화면 ==================== -->
+        <section id="view-complimentee" class="view-panel hidden space-y-6">
+            <!-- 이달의 한마디 -->
+            <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6 rounded-3xl border border-indigo-100/50 shadow-sm relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 text-8xl opacity-10">💬</div>
+                <span class="inline-block px-3 py-1 bg-indigo-500 text-white rounded-full text-xs font-bold mb-3 shadow-sm">
+                    이달의 따뜻한 한마디
+                </span>
+                <p id="random-quote-text" class="text-slate-700 font-medium leading-relaxed text-[15px]">
+                    <!-- 동적 생성 -->
+                </p>
+            </div>
+
+            <!-- 이달의 전송된 결과값 노출 영역 -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between px-1 border-b border-slate-200 pb-2">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">이달의 센터별 우수 상담원 (1위)</h3>
+                    <span id="complimentee-status-badge" class="text-xs font-semibold"></span>
+                </div>
+                
+                <div id="transmitted-results-container" class="space-y-3">
+                    <!-- 전송 완료 시 결과 리스트 출력 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 4. 상담원 등록 화면 ==================== -->
+        <section id="view-admin" class="view-panel hidden space-y-6">
+            <!-- 비밀번호 보호 패널 -->
+            <div id="admin-auth-gate" class="bg-white/80 backdrop-blur-sm p-8 rounded-3xl border border-slate-100 shadow-sm text-center space-y-5">
+                <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <div class="space-y-1">
+                    <h2 class="text-lg font-bold text-slate-800">상담원 등록 보안 게이트</h2>
+                    <p class="text-slate-400 text-xs">관리자 비밀번호를 입력해주세요.</p>
+                </div>
+                <div class="space-y-3">
+                    <input type="password" id="admin-password" placeholder="비밀번호 입력" maxlength="4"
+                        class="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-bold tracking-widest text-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all">
+                    <button onclick="unlockAdmin()" class="w-full py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all shadow-md shadow-emerald-100">
+                        확인
+                    </button>
+                </div>
+            </div>
+
+            <!-- 실제 상담원 등록 화면 -->
+            <div id="admin-dashboard" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div class="text-left">
+                        <h2 class="text-xl font-bold text-slate-800">🛠️ 상담원 등록</h2>
+                        <p class="text-slate-400 text-xs">칭찬 투표 대상인 상담원 정보를 추가하거나 해제합니다.</p>
+                    </div>
+                    <button onclick="lockAdminView()" class="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-500 transition-all">
+                        잠금
+                    </button>
+                </div>
+
+                <!-- 등록 폼 -->
+                <form id="agent-form" onsubmit="registerAgent(event)" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-semibold text-slate-700">센터명 <span class="text-red-500">*</span></label>
+                        <input type="text" id="input-center" required placeholder="예: 서울센터, 대전센터" 
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all text-sm">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1.5">
+                            <label class="block text-sm font-semibold text-slate-700">실 <span class="text-slate-400 font-normal">(선택)</span></label>
+                            <input type="text" id="input-sil" placeholder="예: 고객지원실" 
+                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all text-sm">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-sm font-semibold text-slate-700">파트 <span class="text-slate-400 font-normal">(선택)</span></label>
+                            <input type="text" id="input-part" placeholder="예: 상담1파트" 
+                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all text-sm">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-semibold text-slate-700">상담원 이름 <span class="text-red-500">*</span></label>
+                        <input type="text" id="input-name" required placeholder="예: 홍길동" 
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all text-sm">
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all shadow-md shadow-emerald-100 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i>
+                        새로운 상담원 등록
+                    </button>
+                </form>
+
+                <!-- 등록된 상담원 목록 -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between px-1">
+                        <h3 class="text-sm font-bold text-slate-500">등록된 상담원 목록 (<span id="admin-agent-count">0</span>명)</h3>
+                    </div>
+                    <div id="admin-agents-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        <!-- 동적 로드 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 5. 결과 조회 화면 ==================== -->
+        <section id="view-results" class="view-panel hidden space-y-6">
+            <!-- 비밀번호 보호 패널 -->
+            <div id="results-auth-gate" class="bg-white/80 backdrop-blur-sm p-8 rounded-3xl border border-slate-100 shadow-sm text-center space-y-5">
+                <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <div class="space-y-1">
+                    <h2 class="text-lg font-bold text-slate-800">결과 조회 보안 게이트</h2>
+                    <p class="text-slate-400 text-xs">관리자 비밀번호를 입력해주세요.</p>
+                </div>
+                <div class="space-y-3">
+                    <input type="password" id="results-password" placeholder="비밀번호 입력" maxlength="4"
+                        class="w-full px-4 py-3 border border-slate-200 rounded-xl text-center font-bold tracking-widest text-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all">
+                    <button onclick="unlockResults()" class="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md shadow-indigo-100">
+                        확인
+                    </button>
+                </div>
+            </div>
+
+            <!-- 실제 투표 결과 대시보드 -->
+            <div id="results-dashboard" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">📊 투표 현황 리포트</h2>
+                        <p class="text-slate-400 text-xs">센터별 실시간 득표 정산</p>
+                    </div>
+                    <button onclick="lockResultsView()" class="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-500 transition-all">
+                        잠금
+                    </button>
+                </div>
+
+                <!-- 결과 전송하기 대형 액션 버튼 -->
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex flex-col gap-3">
+                    <p class="text-xs text-indigo-800 font-medium leading-relaxed">
+                        <i class="fa-solid fa-bell"></i> <strong>결과 전송 안내:</strong> 아래 전송 버튼을 누르면 현재 선택된 연월(<span class="font-bold underline text-indigo-900" id="transmit-btn-month-label"></span>)의 투표 결과가 <strong class="text-indigo-900">"칭찬인"</strong> 화면에 즉시 공개됩니다.
+                    </p>
+                    <button onclick="transmitResults()" class="w-full py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-100">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        현재 월의 결과를 칭찬인에 전송하기
+                    </button>
+                </div>
+
+                <!-- 전체 필터 탭 -->
+                <div class="flex gap-1.5 overflow-x-auto pb-1" id="results-center-tabs">
+                    <!-- 동적 렌더링 -->
+                </div>
+
+                <!-- 득표 순위 목록 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">이름 / 소속</span>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">득표수</span>
+                    </div>
+                    <div id="results-ranking-container" class="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+                        <!-- 동적 생성 -->
+                    </div>
+                </div>
+
+                <!-- 현재 월 리셋 버튼 -->
+                <div class="flex justify-end">
+                    <button onclick="clearCurrentMonthVotes()" class="text-xs font-semibold text-red-500 hover:underline">
+                        <i class="fa-solid fa-trash-can mr-1"></i> 현재 월 전체 투표 초기화
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 하단 고정 모바일 탭 네비게이션 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-lg z-20">
+        <div class="max-w-md mx-auto px-4 py-2 flex items-center justify-between text-slate-400">
+            <button onclick="navigate('home')" id="nav-home" class="flex flex-col items-center gap-1 flex-1 py-1 transition-all text-indigo-600">
+                <span class="text-xl"><i class="fa-solid fa-check-to-slot"></i></span>
+                <span class="text-[10px] font-bold">투표 등록</span>
+            </button>
+            <button onclick="navigate('complimentee')" id="nav-complimentee" class="flex flex-col items-center gap-1 flex-1 py-1 transition-all hover:text-indigo-500">
+                <span class="text-xl"><i class="fa-solid fa-award"></i></span>
+                <span class="text-[10px] font-bold">칭찬인</span>
+            </button>
+            <button onclick="navigate('admin')" id="nav-admin" class="flex flex-col items-center gap-1 flex-1 py-1 transition-all hover:text-indigo-500">
+                <span class="text-xl"><i class="fa-solid fa-user-plus"></i></span>
+                <span class="text-[10px] font-bold">상담원 등록</span>
+            </button>
+            <button onclick="navigate('results')" id="nav-results" class="flex flex-col items-center gap-1 flex-1 py-1 transition-all hover:text-indigo-500">
+                <span class="text-xl"><i class="fa-solid fa-chart-simple"></i></span>
+                <span class="text-[10px] font-bold">결과 조회</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 커스텀 알림 모달 -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-xs">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl scale-95 transition-all">
+            <div id="modal-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl"></div>
+            <div class="space-y-1">
+                <h3 id="modal-title" class="font-bold text-slate-800 text-lg">알림</h3>
+                <p id="modal-message" class="text-slate-500 text-sm leading-relaxed"></p>
+            </div>
+            <button onclick="closeModal()" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-sm transition-all">
+                확인
+            </button>
+        </div>
+    </div>
+
+    <!-- 커스텀 확인(Confirm) 모달 -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-xs">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl scale-95 transition-all">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-amber-50 text-amber-500">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 id="confirm-title" class="font-bold text-slate-800 text-lg">확인</h3>
+                <p id="confirm-message" class="text-slate-500 text-sm leading-relaxed"></p>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all">
+                    취소
+                </button>
+                <button id="confirm-ok-btn" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase 11 SDK (ES Module 로딩) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        // ==========================================
+        // [중요] 사용자의 고유한 파이어베이스 연결 정보입니다.
+        // 스코프가 꼬이지 않도록 모듈의 글로벌 영역에 정확히 명시하였습니다.
+        // ==========================================
+        const firebaseConfig = {
+           
+           apiKey: "AIzaSyBaxmZAED_7ztP_hKftIBsR9jVVoeJl3yM",
+  authDomain: "smile-51dd6.firebaseapp.com",
+  projectId: "smile-51dd6",
+  storageBucket: "smile-51dd6.firebasestorage.app",
+  messagingSenderId: "19142680512",
+  appId: "1:19142680512:web:31c5d98c5e3aabfea6f225"
+        };
+
+        const appId = 'smile-51dd6'; // 엄격한 권한 매핑을 위한 프로젝트 고유 appId로 지정
+        let db = null;
+        let auth = null;
+        let user = null;
+        let isFirebaseActive = false;
+
+        // 글로벌 변수 바인딩
+        let agents = [];
+        let publishedMonths = [];
+
+        // 칭찬인 따뜻한 한마디 리스트 (매월 해시값에 의거해 자동 변경)
+        const warmQuotes = [
+            "상담원님의 따뜻하고 고운 목소리 덕분에 답답했던 제 하루가 밝아졌습니다. 진심을 다해 소통해주셔서 깊은 감명을 받았습니다.",
+            "매사 어려운 문제일지라도 자기 일처럼 끝까지 책임지고 친절하게 알려주셔서 감사해요. 당신의 배려가 제겐 아주 큰 위안이 되었습니다.",
+            "늘 적극적인 자세와 시종일관 밝은 태도로 응대해 주시는 상담원님! 신속 정교한 처리에 든든한 신뢰감을 느끼며 깊은 위로를 받았습니다.",
+            "상냥한 미소와 차분하고 명료한 목소리에 매료되어 훌륭한 고품격 응대를 경험하고 갑니다. 언제나 행복이 가득하시길 소망합니다.",
+            "사소한 사안 하나 놓치지 않고 꼼꼼히 살피며 진지한 응대로 일관해 주시던 정성 가득한 태도에 진정성이 전해져 깊은 고마움을 느낍니다.",
+            "제 불만 섞인 하소연에도 평정심을 잃지 않고 차분히 가라앉히시며 세심히 길잡이가 되어주신 든든한 전문가의 조력에 크게 감사드립니다.",
+            "기대 이상으로 세련되고 정확한 업무 지식에 기반한 품격 있는 해설에 깜짝 놀랐습니다. 우리 팀의 대표 에이스 상담원님이십니다."
+        ];
+
+        // 2026-06 ~ 2027-12 연월 목록 생성
+        const yearMonthList = [];
+        for (let y = 2026; y <= 2027; y++) {
+            const startMonth = (y === 2026) ? 6 : 1;
+            const endMonth = (y === 2027) ? 12 : 12;
+            for (let m = startMonth; m <= endMonth; m++) {
+                yearMonthList.push(`${y}-${String(m).padStart(2, '0')}`);
+            }
+        }
+
+        let currentMonth = '';
+        let currentView = 'home';
+        let selectedCenter = '';
+        let isResultsUnlocked = false;
+        let isAdminUnlocked = false;
+        let selectedResultsCenterTab = '전체';
+
+        // 1. 초기 셋업 시작
+        window.onload = function() {
+            initializeMonth();
+            
+            // 키 값이 올바른 포맷으로 채워져 있을 때만 파이어베이스 활성화 시도
+            if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("YOUR_API")) {
+                isFirebaseActive = true;
+                initFirebase();
+            } else {
+                initLocalFallback();
+            }
+        };
+
+        // 월 목록 셋업
+        function initializeMonth() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const detectedMonth = `${year}-${month}`;
+
+            const selector = document.getElementById('month-selector');
+            selector.innerHTML = '';
+            
+            yearMonthList.forEach(ym => {
+                const opt = document.createElement('option');
+                opt.value = ym;
+                const formattedName = ym.replace('-', '년 ') + '월';
+                opt.textContent = formattedName;
+                selector.appendChild(opt);
+            });
+
+            if (yearMonthList.includes(detectedMonth)) {
+                currentMonth = detectedMonth;
+            } else {
+                currentMonth = '2026-06';
+            }
+            selector.value = currentMonth;
+            updateCurrentMonthUI();
+        }
+
+        function updateCurrentMonthUI() {
+            const formatted = currentMonth.replace('-', '년 ') + '월';
+            document.getElementById('current-month-title').textContent = formatted;
+            
+            const btnMonthLabel = document.getElementById('transmit-btn-month-label');
+            if (btnMonthLabel) {
+                btnMonthLabel.textContent = formatted;
+            }
+        }
+
+        // ========================================================
+        // 2. 파이어베이스 연동 및 로그인 대기 제어 (RULE 3 준수)
+        // ========================================================
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // 익명인증을 우선 수행한 후, 권한 바인딩을 처리합니다.
+                onAuthStateChanged(auth, (currentUser) => {
+                    user = currentUser;
+                    if (user) {
+                        const sBar = document.getElementById('connection-status-bar');
+                        sBar.className = "bg-emerald-500 text-white text-[10px] py-1 text-center font-bold tracking-wider transition-colors";
+                        sBar.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> 실시간 클라우드 DB 연동 완료 (모든 사용자와 실시간 공유 중)';
+                        setupFirestoreListeners();
+                    } else {
+                        initLocalFallback();
+                    }
+                });
+
+                // 익명 로그인 수행
+                await signInAnonymously(auth);
+
+            } catch (err) {
+                console.warn("파이어베이스 초기화 과정에서 오류가 발견되어 로컬 안전 모드로 전환합니다: ", err);
+                initLocalFallback();
+            }
+        }
+
+        // ========================================================
+        // 3. 엄격한 경로 구독으로 실시간 동기화 채널 수립 (RULE 1 준수)
+        // ========================================================
+        function setupFirestoreListeners() {
+            if (!user) return;
+
+            // 1) 상담원 컬렉션 리포트 실시간 동기화
+            const agentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'agents');
+            onSnapshot(agentsRef, (snapshot) => {
+                agents = [];
+                snapshot.forEach(doc => {
+                    agents.push({ id: doc.id, ...doc.data() });
+                });
+                refreshCurrentView();
+            }, (error) => {
+                console.error("데이터 수신 오류가 검출되어 로컬 모드로 전환합니다: ", error);
+                initLocalFallback();
+            });
+
+            // 2) 게시 완료 월 리포트 실시간 동기화
+            const configRef = collection(db, 'artifacts', appId, 'public', 'data', 'metadata');
+            onSnapshot(configRef, (snapshot) => {
+                publishedMonths = [];
+                snapshot.forEach(doc => {
+                    if (doc.id === 'published') {
+                        publishedMonths = doc.data().months || [];
+                    }
+                });
+                refreshCurrentView();
+            }, (error) => {
+                console.warn("공개이력 동기화 무시: ", error);
+            });
+        }
+
+        // 오프라인 상태일 때 작동하는 폴백 세션
+        function initLocalFallback() {
+            const sBar = document.getElementById('connection-status-bar');
+            sBar.className = "bg-indigo-600 text-white text-[10px] py-1 text-center font-bold tracking-wider transition-colors";
+            sBar.innerHTML = '<i class="fa-solid fa-shield-halved mr-1"></i> 고속 로컬 브라우저 보안 모드로 안전하게 작동 중입니다.';
+            
+            isFirebaseActive = false;
+
+            const savedAgents = localStorage.getItem('compliment_agents');
+            if (savedAgents) {
+                agents = JSON.parse(savedAgents);
+            } else {
+                agents = [
+                    { id: '1', name: '김민수', center: 'A센터', sil: '고객지원실', part: '상담1팀', votes: { '2026-06': 15, '2026-07': 4 } },
+                    { id: '2', name: '이지혜', center: 'A센터', sil: '고객지원실', part: '상담2팀', votes: { '2026-06': 12, '2026-07': 8 } },
+                    { id: '3', name: '박성준', center: 'B센터', sil: '기술지원실', part: '장애접수팀', votes: { '2026-06': 8, '2026-07': 5 } },
+                    { id: '4', name: '최윤서', center: 'B센터', sil: '기술지원실', part: '지원2팀', votes: { '2026-06': 10, '2026-07': 2 } }
+                ];
+                localStorage.setItem('compliment_agents', JSON.stringify(agents));
+            }
+
+            const savedPublished = localStorage.getItem('compliment_published_months');
+            publishedMonths = savedPublished ? JSON.parse(savedPublished) : [];
+
+            refreshCurrentView();
+        }
+
+        function refreshCurrentView() {
+            navigate(currentView);
+        }
+
+        // 화면 탭 이동 제어
+        function navigate(viewName) {
+            currentView = viewName;
+            
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.add('hidden'));
+            
+            const targetPanel = document.getElementById(`view-${viewName}`);
+            if (targetPanel) {
+                targetPanel.classList.remove('hidden');
+            }
+
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('text-indigo-600');
+                btn.classList.add('text-slate-400');
+            });
+            
+            const activeNav = document.getElementById(`nav-${viewName}`);
+            if (activeNav) {
+                activeNav.classList.add('text-indigo-600');
+                activeNav.classList.remove('text-slate-400');
+            }
+
+            if (viewName === 'home') {
+                renderHome();
+            } else if (viewName === 'complimentee') {
+                renderComplimentee();
+            } else if (viewName === 'admin') {
+                renderAdmin();
+            } else if (viewName === 'results') {
+                renderResults();
+            }
+        }
+
+        function onMonthChanged(value) {
+            currentMonth = value;
+            updateCurrentMonthUI();
+            refreshCurrentView();
+        }
+
+        // 1. HOME 화면 처리
+        function renderHome() {
+            const container = document.getElementById('center-buttons-container');
+            container.innerHTML = '';
+
+            const centers = [...new Set(agents.map(a => a.center))].filter(Boolean);
+
+            if (centers.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 space-y-3">
+                        <p class="text-sm">현재 등록된 센터 정보가 존재하지 않습니다.</p>
+                        <button onclick="navigate('admin')" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-xs">
+                            상담원 등록하기
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const colors = [
+                { bg: 'bg-pastel-blue', hover: 'hover:bg-blue-100', text: 'text-blue-800', accent: 'bg-blue-300' },
+                { bg: 'bg-pastel-mint', hover: 'hover:bg-teal-100', text: 'text-teal-800', accent: 'bg-teal-300' },
+                { bg: 'bg-pastel-pink', hover: 'hover:bg-pink-100', text: 'text-pink-800', accent: 'bg-pink-300' },
+                { bg: 'bg-pastel-peach', hover: 'hover:bg-amber-100', text: 'text-amber-800', accent: 'bg-amber-300' },
+                { bg: 'bg-pastel-purple', hover: 'hover:bg-purple-100', text: 'text-purple-800', accent: 'bg-purple-300' }
+            ];
+
+            centers.forEach((centerName, index) => {
+                const count = agents.filter(a => a.center === centerName).length;
+                const color = colors[index % colors.length];
+
+                const card = document.createElement('button');
+                card.onclick = () => openVoteScreen(centerName);
+                card.className = `w-full text-left p-5 ${color.bg} ${color.hover} transition-all rounded-2xl flex items-center justify-between border border-white active:scale-[0.99] group shadow-sm`;
+                
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${color.accent}"></span>
+                            <span class="text-lg font-black ${color.text}">${centerName}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">${count}명의 투표 대상 상담원</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-white/75 flex items-center justify-center text-slate-600 group-hover:translate-x-1 transition-transform">
+                        <i class="fa-solid fa-chevron-right text-sm"></i>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 2. 센터별 상세 투표 화면
+        function openVoteScreen(centerName) {
+            selectedCenter = centerName;
+            navigate('vote');
+
+            document.getElementById('vote-center-badge').textContent = centerName;
+
+            const listContainer = document.getElementById('vote-agents-list');
+            listContainer.innerHTML = '';
+
+            const filtered = agents.filter(a => a.center === centerName);
+
+            filtered.forEach(agent => {
+                const item = document.createElement('label');
+                item.className = "flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-50/50 transition-all active:bg-slate-100 shadow-xs";
+                
+                const deptText = [agent.sil, agent.part].filter(Boolean).join(' • ');
+
+                item.innerHTML = `
+                    <div class="relative flex items-center">
+                        <input type="checkbox" name="vote-agent" value="${agent.id}" 
+                            class="peer appearance-none w-7 h-7 border-2 border-slate-300 rounded-lg checked:border-indigo-600 checked:bg-indigo-600 focus:outline-none cursor-pointer transition-all">
+                        <i class="fa-solid fa-check absolute text-white text-sm left-[6px] top-[7px] pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                    </div>
+                    <div class="space-y-0.5">
+                        <span class="text-base font-bold text-slate-800">${agent.name} 상담원</span>
+                        <p class="text-xs text-slate-400 font-medium">${deptText}</p>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        // 투표 제출 처리 (클라우드/로컬 가변 분기 처리)
+        async function submitVotes() {
+            const checkedBoxes = document.querySelectorAll('input[name="vote-agent"]:checked');
+            if (checkedBoxes.length === 0) {
+                showModal('투표 안내', '칭찬하고 싶은 상담원을 최소 1명 이상 선택해 주세요!', 'warning');
+                return;
+            }
+
+            try {
+                for (let box of checkedBoxes) {
+                    const agentId = box.value;
+                    const agent = agents.find(a => a.id === agentId);
+                    if (agent) {
+                        const votes = agent.votes || {};
+                        votes[currentMonth] = (votes[currentMonth] || 0) + 1;
+
+                        if (isFirebaseActive && db) {
+                            const agentDoc = doc(db, 'artifacts', appId, 'public', 'data', 'agents', agentId);
+                            await updateDoc(agentDoc, { votes: votes });
+                        } else {
+                            agent.votes = votes;
+                        }
+                    }
+                }
+
+                if (!isFirebaseActive) {
+                    localStorage.setItem('compliment_agents', JSON.stringify(agents));
+                }
+
+                showModal(
+                    '투표 완료 🎉', 
+                    `선택하신 소중한 칭찬표가 대시보드에 정상 처리되었습니다.`, 
+                    'success'
+                );
+                navigate('home');
+            } catch (err) {
+                console.error("투표 제출 에러: ", err);
+                showModal('오류 발생', '투표 반영 과정에서 문제가 발생했습니다. 파이어베이스 보안규칙을 점검하세요.', 'error');
+            }
+        }
+
+        // 3. 칭찬인 화면 렌더링
+        function renderComplimentee() {
+            const quoteTextContainer = document.getElementById('random-quote-text');
+            const monthHash = currentMonth.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const selectedQuote = warmQuotes[monthHash % warmQuotes.length];
+            quoteTextContainer.textContent = `"${selectedQuote}"`;
+
+            const resultsContainer = document.getElementById('transmitted-results-container');
+            const statusBadge = document.getElementById('complimentee-status-badge');
+            
+            resultsContainer.innerHTML = '';
+
+            const isTransmitted = publishedMonths.includes(currentMonth);
+
+            if (!isTransmitted) {
+                statusBadge.className = "text-xs font-semibold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full";
+                statusBadge.textContent = "집계 전송 대기중";
+
+                resultsContainer.innerHTML = `
+                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center space-y-3">
+                        <div class="text-4xl">⏱️</div>
+                        <h4 class="font-bold text-slate-700 text-sm">현재 집계 정리가 진행 중입니다.</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            관리자가 결과를 확인 후 '결과 전송' 버튼을 누르면<br>
+                            이달의 각 센터별 우수 상담원 1위 명단이 공개됩니다!
+                        </p>
+                    </div>
+                `;
+            } else {
+                statusBadge.className = "text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full";
+                statusBadge.textContent = "집계 공개 완료";
+
+                let activeAgents = agents.filter(a => (a.votes?.[currentMonth] || 0) > 0);
+
+                if (activeAgents.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center">
+                            <p class="text-slate-400 text-xs">해당 월에 전송된 칭찬 투표 기록이 없습니다.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 각 센터별 최고 득점자(1위) 추출
+                let centerWinners = {}; 
+                activeAgents.forEach(agent => {
+                    const votes = agent.votes[currentMonth];
+                    const center = agent.center;
+
+                    if (!centerWinners[center]) {
+                        centerWinners[center] = { maxVotes: votes, list: [agent] };
+                    } else {
+                        if (votes > centerWinners[center].maxVotes) {
+                            centerWinners[center].maxVotes = votes;
+                            centerWinners[center].list = [agent]; 
+                        } else if (votes === centerWinners[center].maxVotes) {
+                            centerWinners[center].list.push(agent); 
+                        }
+                    }
+                });
+
+                let showList = [];
+                for (let center in centerWinners) {
+                    showList.push(...centerWinners[center].list);
+                }
+
+                showList.sort((a, b) => {
+                    const vA = a.votes?.[currentMonth] || 0;
+                    const vB = b.votes?.[currentMonth] || 0;
+                    return vB - vA;
+                });
+
+                showList.forEach((agent, index) => {
+                    const votes = agent.votes?.[currentMonth] || 0;
+                    const deptText = [agent.sil, agent.part].filter(Boolean).join(' / ');
+                    
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between p-4 bg-white border border-indigo-50 rounded-2xl shadow-xs transition-all hover:translate-y-[-1px]";
+                    
+                    const rankBadge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '✨';
+
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">${rankBadge}</span>
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-sm font-bold text-slate-800">${agent.name}</span>
+                                    <span class="text-[9px] px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded font-bold">${agent.center}</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400 font-medium">${deptText || '기본 정보 미기재'}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-black text-indigo-600 bg-indigo-50/50 px-3 py-1 rounded-full">${votes}표</span>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(div);
+                });
+            }
+        }
+
+        // 4. 상담원 관리 화면 제어
+        function renderAdmin() {
+            const authGate = document.getElementById('admin-auth-gate');
+            const dashboard = document.getElementById('admin-dashboard');
+
+            if (!isAdminUnlocked) {
+                authGate.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+                document.getElementById('admin-password').value = '';
+                return;
+            } else {
+                authGate.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+            }
+
+            const countSpan = document.getElementById('admin-agent-count');
+            countSpan.textContent = agents.length;
+
+            const container = document.getElementById('admin-agents-list');
+            container.innerHTML = '';
+
+            if (agents.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <p class="text-sm">등록된 상담원이 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            agents.forEach(agent => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-3.5 bg-white border border-slate-100 rounded-xl shadow-xs hover:border-red-100 transition-colors";
+                
+                const deptText = [agent.sil, agent.part].filter(Boolean).join(' / ');
+
+                div.innerHTML = `
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-semibold">${agent.center}</span>
+                            <span class="text-sm font-bold text-slate-800">${agent.name}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 font-medium">${deptText || '소속 없음'}</p>
+                    </div>
+                    <button onclick="deleteAgent('${agent.id}')" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all" title="상담원 삭제">
+                        <i class="fa-regular fa-trash-can text-sm"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function registerAgent(e) {
+            e.preventDefault();
+            
+            const center = document.getElementById('input-center').value.trim();
+            const sil = document.getElementById('input-sil').value.trim();
+            const part = document.getElementById('input-part').value.trim();
+            const name = document.getElementById('input-name').value.trim();
+
+            if (!center || !name) {
+                showModal('입력 오류', '필수 항목(*)을 모두 입력해주세요.', 'warning');
+                return;
+            }
+
+            const newAgent = {
+                name,
+                center,
+                sil,
+                part,
+                votes: {}
+            };
+
+            try {
+                if (isFirebaseActive && db) {
+                    const agentsCol = collection(db, 'artifacts', appId, 'public', 'data', 'agents');
+                    await addDoc(agentsCol, newAgent);
+                } else {
+                    newAgent.id = Date.now().toString();
+                    agents.push(newAgent);
+                    localStorage.setItem('compliment_agents', JSON.stringify(agents));
+                    renderAdmin();
+                }
+
+                document.getElementById('input-name').value = '';
+                showModal('등록 성공', `${name} 상담원이 등록부에 추가되었습니다.`, 'success');
+            } catch (err) {
+                console.error(err);
+                showModal('에러', '상담원을 데이터베이스에 기록하는 데 실패했습니다.', 'error');
+            }
+        }
+
+        function unlockAdmin() {
+            const pwdInput = document.getElementById('admin-password').value;
+            if (pwdInput === '0777') {
+                isAdminUnlocked = true;
+                renderAdmin();
+            } else {
+                showModal('비밀번호 오류', '보안 비밀번호가 올바르지 않습니다.', 'error');
+                document.getElementById('admin-password').value = '';
+            }
+        }
+
+        function lockAdminView() {
+            isAdminUnlocked = false;
+            renderAdmin();
+        }
+
+        function deleteAgent(id) {
+            const agent = agents.find(a => a.id === id);
+            if (!agent) return;
+
+            showConfirm(
+                '상담원 정보 삭제',
+                `'${agent.name}' 상담원을 정말 목록에서 삭제하시겠습니까?`,
+                async function() {
+                    try {
+                        if (isFirebaseActive && db) {
+                            const agentDoc = doc(db, 'artifacts', appId, 'public', 'data', 'agents', id);
+                            await deleteDoc(agentDoc);
+                        } else {
+                            agents = agents.filter(a => a.id !== id);
+                            localStorage.setItem('compliment_agents', JSON.stringify(agents));
+                            renderAdmin();
+                        }
+                        showModal('삭제 완료', '상담원 정보가 리스트에서 영구 제거되었습니다.', 'info');
+                    } catch (err) {
+                        console.error(err);
+                        showModal('에러', '상담원 정보 제거 실패', 'error');
+                    }
+                }
+            );
+        }
+
+        // 5. 결과 조회 대시보드
+        function renderResults() {
+            const authGate = document.getElementById('results-auth-gate');
+            const dashboard = document.getElementById('results-dashboard');
+
+            if (!isResultsUnlocked) {
+                authGate.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+                document.getElementById('results-password').value = '';
+            } else {
+                authGate.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                renderResultsDashboard();
+            }
+        }
+
+        function unlockResults() {
+            const pwdInput = document.getElementById('results-password').value;
+            if (pwdInput === '0777') {
+                isResultsUnlocked = true;
+                renderResults();
+            } else {
+                showModal('비밀번호 오류', '보안 비밀번호가 올바르지 않습니다.', 'error');
+                document.getElementById('results-password').value = '';
+            }
+        }
+
+        function lockResultsView() {
+            isResultsUnlocked = false;
+            renderResults();
+        }
+
+        function renderResultsDashboard() {
+            const formattedMonth = currentMonth.replace('-', '년 ') + '월';
+            const btnMonthLabel = document.getElementById('transmit-btn-month-label');
+            if (btnMonthLabel) {
+                btnMonthLabel.textContent = formattedMonth;
+            }
+
+            const tabContainer = document.getElementById('results-center-tabs');
+            tabContainer.innerHTML = '';
+
+            const centers = [...new Set(agents.map(a => a.center))].filter(Boolean);
+            const allTabs = ['전체', ...centers];
+
+            if (!allTabs.includes(selectedResultsCenterTab)) {
+                selectedResultsCenterTab = '전체';
+            }
+
+            allTabs.forEach(tabName => {
+                const isSelected = selectedResultsCenterTab === tabName;
+                const tab = document.createElement('button');
+                tab.onclick = () => {
+                    selectedResultsCenterTab = tabName;
+                    renderResultsDashboard();
+                };
+                tab.className = `px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                    isSelected 
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                }`;
+                tab.textContent = tabName;
+                tabContainer.appendChild(tab);
+            });
+
+            let targetAgents = [...agents];
+            if (selectedResultsCenterTab !== '전체') {
+                targetAgents = targetAgents.filter(a => a.center === selectedResultsCenterTab);
+            }
+
+            targetAgents.sort((a, b) => {
+                const votesA = a.votes?.[currentMonth] || 0;
+                const votesB = b.votes?.[currentMonth] || 0;
+                if (votesB !== votesA) return votesB - votesA;
+                return a.name.localeCompare(b.name, 'ko');
+            });
+
+            const rankingContainer = document.getElementById('results-ranking-container');
+            rankingContainer.innerHTML = '';
+
+            if (targetAgents.length === 0) {
+                rankingContainer.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-xs">
+                        소속된 상담원 정보가 존재하지 않습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            const maxVotes = Math.max(...targetAgents.map(a => a.votes?.[currentMonth] || 0), 1);
+
+            targetAgents.forEach((agent, idx) => {
+                const votes = agent.votes?.[currentMonth] || 0;
+                const pct = Math.max((votes / maxVotes) * 100, 3);
+
+                const item = document.createElement('div');
+                item.className = "space-y-1.5";
+
+                const isTopThree = idx < 3 && votes > 0;
+                const medalEmojis = ['🥇', '🥈', '🥉'];
+                const rankDisplay = isTopThree 
+                    ? `<span class="text-base">${medalEmojis[idx]}</span>` 
+                    : `<span class="text-xs font-bold text-slate-400 w-5 text-center">${idx + 1}</span>`;
+
+                const deptText = [agent.sil, agent.part].filter(Boolean).join(' • ');
+
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            ${rankDisplay}
+                            <div class="text-left">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-sm font-bold text-slate-800">${agent.name}</span>
+                                    <span class="text-[9px] px-1.5 py-0.1 bg-slate-100 text-slate-500 rounded font-semibold">${agent.center}</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 font-medium">${deptText || '세부 정보 없음'}</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-black text-indigo-600">${votes}표</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                rankingContainer.appendChild(item);
+            });
+        }
+
+        async function transmitResults() {
+            const formatted = currentMonth.replace('-', '년 ') + '월';
+            
+            try {
+                if (!publishedMonths.includes(currentMonth)) {
+                    publishedMonths.push(currentMonth);
+                }
+
+                if (isFirebaseActive && db) {
+                    const configDoc = doc(db, 'artifacts', appId, 'public', 'data', 'metadata', 'published');
+                    await setDoc(configDoc, { months: publishedMonths });
+                } else {
+                    localStorage.setItem('compliment_published_months', JSON.stringify(publishedMonths));
+                }
+                
+                showModal(
+                    '결과 전송 완료 ✉️',
+                    `[${formatted}]의 최종 1위 우수 상담원 집계 결과가 '칭찬인' 대시보드로 성공적으로 송신되었습니다.`,
+                    'success'
+                );
+            } catch (err) {
+                console.error(err);
+                showModal('전송 에러', '전송 실패', 'error');
+            }
+        }
+
+        function clearCurrentMonthVotes() {
+            const formatted = currentMonth.replace('-', '년 ') + '월';
+            
+            showConfirm(
+                '투표 초기화 경고',
+                `정말 [${formatted}]의 모든 투표 데이터를 완전히 초기화하시겠습니까? 게시되었던 결과 역시 비공개로 즉시 전환됩니다.`,
+                async function() {
+                    try {
+                        if (isFirebaseActive && db) {
+                            for (let agent of agents) {
+                                if (agent.votes && agent.votes[currentMonth]) {
+                                    const updatedVotes = { ...agent.votes };
+                                    updatedVotes[currentMonth] = 0;
+                                    const agentDoc = doc(db, 'artifacts', appId, 'public', 'data', 'agents', agent.id);
+                                    await updateDoc(agentDoc, { votes: updatedVotes });
+                                }
+                            }
+                            publishedMonths = publishedMonths.filter(m => m !== currentMonth);
+                            const configDoc = doc(db, 'artifacts', appId, 'public', 'data', 'metadata', 'published');
+                            await setDoc(configDoc, { months: publishedMonths });
+                        } else {
+                            agents.forEach(agent => {
+                                if (agent.votes && agent.votes[currentMonth]) {
+                                    agent.votes[currentMonth] = 0;
+                                }
+                            });
+                            publishedMonths = publishedMonths.filter(m => m !== currentMonth);
+                            localStorage.setItem('compliment_published_months', JSON.stringify(publishedMonths));
+                            localStorage.setItem('compliment_agents', JSON.stringify(agents));
+                            renderResultsDashboard();
+                        }
+                        
+                        showModal('초기화 완료', `${formatted}의 투표 및 공개 데이터가 성공적으로 초기화되었습니다.`, 'success');
+                    } catch (err) {
+                        console.error(err);
+                        showModal('초기화 실패', '클라우드 데이터 초기화 과정에서 오류가 발생했습니다.', 'error');
+                    }
+                }
+            );
+        }
+
+        // 공용 알림 모달
+        function showModal(title, message, type = 'info') {
+            const modal = document.getElementById('custom-modal');
+            const iconContainer = document.getElementById('modal-icon');
+            
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+
+            if (type === 'success') {
+                iconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-emerald-50 text-emerald-500";
+                iconContainer.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else if (type === 'warning') {
+                iconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-amber-50 text-amber-500";
+                iconContainer.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else if (type === 'error') {
+                iconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-red-50 text-red-500";
+                iconContainer.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+            } else {
+                iconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-blue-50 text-blue-500";
+                iconContainer.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        // 공용 확인(Confirm) 모달
+        function showConfirm(title, message, onConfirmCallback) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            
+            const okBtn = document.getElementById('confirm-ok-btn');
+            
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            
+            newOkBtn.addEventListener('click', function() {
+                if (typeof onConfirmCallback === 'function') {
+                    onConfirmCallback();
+                }
+                closeConfirmModal();
+            });
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        // 전역 범위 바인딩
+        window.navigate = navigate;
+        window.onMonthChanged = onMonthChanged;
+        window.submitVotes = submitVotes;
+        window.unlockAdmin = unlockAdmin;
+        window.lockAdminView = lockAdminView;
+        window.registerAgent = registerAgent;
+        window.deleteAgent = deleteAgent;
+        window.unlockResults = unlockResults;
+        window.lockResultsView = lockResultsView;
+        window.transmitResults = transmitResults;
+        window.clearCurrentMonthVotes = clearCurrentMonthVotes;
+        window.closeModal = closeModal;
+        window.closeConfirmModal = closeConfirmModal;
+    </script>
+</body>
+</html>
